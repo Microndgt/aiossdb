@@ -2,20 +2,23 @@
 aiossdb is a library for accessing a ssdb database from the asyncio
 
 Requirements
-============
+------------
 
-- Python_ 3.5+
+- Python 3.5+
 
 DO and TODO
-===========
+-----------
 
 - [x] base async ssdb connection
 - [x] ssdb parser
-- [] ssdb async connection pool
-
+- [ ] ssdb async connection pool
+- [ ] easy using ssdb client
+- [ ] tests
+- [ ] releasing...
+- [ ] and more...
 
 Quick Start
-===========
+-----------
 
 ```
 import asyncio
@@ -45,7 +48,7 @@ loop.close()
 ```
 
 Exceptions
-==========
+----------
 
 - SSDBError
     - ConnectionClosedError
