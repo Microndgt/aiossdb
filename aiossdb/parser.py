@@ -29,12 +29,6 @@ def encode_command(command, *args):
 
 
 class SSDBParser:
-    """先迭代元素，看长度是否匹配
-        然后迭代第一行，看状态码是否正确
-        然后提取元素，状态码后面的数据
-        最后通过连接里面的_process_data来处理不同的命令
-        最后将数据装入期物"""
-
     def __init__(self, encoding=None):
         # 字节数组
         self.buf = bytearray()
@@ -92,7 +86,11 @@ class SSDBParser:
     def read_int(self):
         """读取协议中定义为数据长度的行"""
         try:
-            return int((yield from self.read_line()))
+            value = yield from self.read_line()
+            # 读取下一个\n之前的字符是空字符
+            if value == "":
+                return value
+            return int(value)
         except ValueError:
             raise ProtocolError("Expected int")
 
@@ -101,8 +99,11 @@ class SSDBParser:
         status = yield from self.read_line(size)
         if status != 'ok':
             return ReplyError(status)
-        size = yield from self.read_int()
+        # 可能没有数据，所以在读完状态后的值可能不是int，而是换行符
         data = []
+        size = yield from self.read_int()
+        if not size:
+            return data
         while True:
             val = yield from self.read_line(size)
             data.append(val)
@@ -128,4 +129,3 @@ class SSDBParser:
             raise
         else:
             return False
-
