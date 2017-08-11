@@ -2,7 +2,7 @@
 aiossdb is a library for accessing a ssdb database from the asyncio
 
 [![Coverage Status](https://coveralls.io/repos/github/Microndgt/aiossdb/badge.svg?branch=master)](https://coveralls.io/github/Microndgt/aiossdb?branch=master)
-[![Coverage Status](https://coveralls.io/repos/github/Microndgt/aiossdb/badge.svg)](https://coveralls.io/github/Microndgt/aiossdb)
+![https://travis-ci.org/Microndgt/aiossdb.svg?branch=master](https://travis-ci.org/Microndgt/aiossdb.svg?branch=master)
 
 Requirements
 ------------
