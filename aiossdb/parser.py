@@ -87,9 +87,6 @@ class SSDBParser:
         """读取协议中定义为数据长度的行"""
         try:
             value = yield from self.read_line()
-            # 读取下一个\n之前的字符是空字符
-            if value == "":
-                return value
             return int(value)
         except ValueError:
             raise ProtocolError("Expected int")
@@ -99,10 +96,12 @@ class SSDBParser:
         status = yield from self.read_line(size)
         if status != 'ok':
             return ReplyError(status)
-        # 可能没有数据，所以在读完状态后的值可能不是int，而是换行符
         data = []
-        size = yield from self.read_int()
-        if not size:
+        try:
+            # 可能没有数据，所以在读完状态后的值可能不是int，而是换行符
+            # 如果有异常则数据为空
+            size = yield from self.read_int()
+        except ProtocolError:
             return data
         while True:
             val = yield from self.read_line(size)

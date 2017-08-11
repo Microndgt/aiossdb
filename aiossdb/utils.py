@@ -1,6 +1,5 @@
 import asyncio
 from .log import logger
-from .errors import ReplyError
 
 
 def set_result(fut, result, *info):

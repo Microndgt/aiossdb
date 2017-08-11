@@ -1,13 +1,16 @@
 # aiossdb
 aiossdb is a library for accessing a ssdb database from the asyncio
 
+[![Coverage Status](https://coveralls.io/repos/github/Microndgt/aiossdb/badge.svg?branch=master)](https://coveralls.io/github/Microndgt/aiossdb?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/Microndgt/aiossdb/badge.svg)](https://coveralls.io/github/Microndgt/aiossdb)
+
 Requirements
 ------------
 
 - Python 3.5+
 
-DO and TODO
------------
+DONE and TODO
+-------------
 
 - [x] base async ssdb connection
 - [x] ssdb parser
@@ -38,7 +41,7 @@ def connect_tcp():
     else:
         print(val)
         yield from conn.execute('set', 'a', 2)
-        val = yield from conn.execute('hget', 'tdx_year_rank', 'f003006001000055')
+        val = yield from conn.execute('hget', 'hash_name', 'hash_key')
         print(val)
 
     conn.close()
@@ -54,3 +57,8 @@ Exceptions
     - ConnectionClosedError
     - ReplyError
     - ProtocolError
+
+NOTES
+-----
+
+- The preliminary test shows that `aiossdb` is 25 times fast than [pyssdb](https://github.com/ifduyue/pyssdb)
