@@ -14,7 +14,7 @@ _NOTSET = object()
 
 
 @asyncio.coroutine
-def create_connection(address, *, password=None, encoding=None, parser=None, loop=None,
+def create_connection(address, *, password=None, encoding='utf-8', parser=None, loop=None,
                       timeout=None, connect_cls=None, reusable=True):
     '''
     创建SSDB数据库连接
@@ -87,7 +87,6 @@ class SSDBConnection:
         self._loop = loop
         # 使用双端队列来记录发送的命令，在解析数据的时候popleft
         self._waiters = deque()
-        # TODO: ssdb数据解析器
         self._parser = parser(encoding=encoding)
         # 创建读取的task, self._read_data()是一个协程，用来在套接字生存期间读取数据
         # ensure_future 排定协程在事件循环的执行，如果参数是Future对象，将直接返回，返回的类型是Task对象
@@ -195,7 +194,7 @@ class SSDBConnection:
 
     @asyncio.coroutine
     def wait_closed(self):
-        """协程 等待直到连接关闭"""
+        """协程 等待直到套接字连接关闭，防止self._close_waiter被取消"""
         yield from asyncio.shield(self._close_waiter, loop=self._loop)
 
     @property

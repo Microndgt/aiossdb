@@ -25,6 +25,37 @@ Quick Start
 
 - ConnectionPool
 
+```
+import asyncio
+from aiossdb import create_pool
+
+loop = asyncio.get_event_loop()
+
+
+@asyncio.coroutine
+def connect_tcp():
+    pool = yield from create_pool(('localhost', 8888), loop=loop, minsize=5, maxsize=10)
+
+    # 使用pool直接执行命令
+    yield from pool.execute('set', 'a', 2)
+    val = yield from pool.execute('hget', 'hash_name', 'hash_key')
+    print(val)
+
+    # 使用pool获取连接
+    conn, addr = yield from pool.get_connection()
+    yield from conn.execute('set', 'a', 2)
+    val = yield from conn.execute('hget', 'hash_name', 'hash_key')
+    print(val)
+    # 获取的连接最后一定要release
+    pool.release(conn)
+
+    pool.close()
+    yield form pool.wait_closed()
+
+loop.run_until_complete(connect_tcp())
+loop.close()
+```
+
 - Connection
 
 ```
@@ -37,18 +68,13 @@ loop = asyncio.get_event_loop()
 
 @asyncio.coroutine
 def connect_tcp():
-    conn = yield from create_connection(('localhost', 8888), encoding='utf-8')
-    try:
-        val = yield from conn.auth('f')
-    except ReplyError as e:
-        print(e)
-    else:
-        print(val)
-        yield from conn.execute('set', 'a', 2)
-        val = yield from conn.execute('hget', 'hash_name', 'hash_key')
-        print(val)
+    conn = yield from create_connection(('localhost', 8888), loop=loop)
+    yield from conn.execute('set', 'a', 2)
+    val = yield from conn.execute('hget', 'hash_name', 'hash_key')
+    print(val)
 
     conn.close()
+    yield from conn.wait_closed()
 
 loop.run_until_complete(connect_tcp())
 loop.close()

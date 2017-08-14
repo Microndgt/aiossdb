@@ -6,8 +6,24 @@ from .errors import PoolClosedError
 from .log import logger
 
 
-def create_pool():
-    pass
+def create_pool(address, *, password=None, encoding='utf-8', minsize=1, maxsize=10,
+                parser=None, loop=None, timeout=None, pool_cls=None, connection_cls=None):
+    if pool_cls is None:
+        pool_cls = ConnectionPool
+
+    pool = pool_cls(address, password=password, encoding=encoding,
+                    parser=parser, minsize=minsize, maxsize=maxsize,
+                    loop=loop, timeout=timeout, connection_cls=connection_cls)
+
+    # 首先先填充空闲连接
+    try:
+        # 填充至最小minsize的大小
+        yield from pool._fill_free(overall=False)
+    except Exception as e:
+        pool.close()
+        yield from pool.wait_closed()
+        raise
+    return pool
 
 
 class ConnectionPool:
@@ -33,6 +49,9 @@ class ConnectionPool:
         self._encoding = encoding
         # 用于release后同步各个其他获取新连接的协程，使其开始工作，否则等待条件
         self._cond = asyncio.Condition(lock=asyncio.Lock(loop=loop), loop=loop)
+        self._waiter = None
+        self._closing = False
+        self._closed = False
 
     def execute(self, command, *args, **kwargs):
         conn, address = yield from self.get_connection()
@@ -96,6 +115,7 @@ class ConnectionPool:
                     return conn
                 else:
                     # 等待release的释放连接，然后调用notify方法来通知此处
+                    # wait的时候会将lock释放
                     yield from self._cond.wait()
 
     @asyncio.coroutine
@@ -158,8 +178,38 @@ class ConnectionPool:
         self._used = self._used.difference(_closed_used)
 
     def close(self):
-        pass
+        """关闭所有的连接，pool以及正在使用的连接"""
+        self._closing = True
+        self._waiter = asyncio.ensure_future(self._do_close(), loop=self._loop)
+
+    @asyncio.coroutine
+    def _do_close(self):
+        """将所有的pool连接和used连接取出来，可能需要等待，加入期物列表"""
+        with (yield from self._cond):
+            waiters = []
+            while self._pool:
+                conn = self._pool.popleft()
+                conn.close()
+                # 加入期物
+                waiters.append(conn.wait_closed())
+            for conn in self._used:
+                conn.close()
+                waiters.append(conn.wait_closed())
+            yield from asyncio.gather(*waiters, loop=self._loop)
+            self._closed = True
+
+    def wait_closed(self):
+        """等待直到连接池关闭，这里要等待的是所有连接池连接的关闭期物Future的完成"""
+        yield from asyncio.shield(self._waiter, loop=self._loop)
 
     @property
     def closed(self):
-        pass
+        return self._closing or self._closed
+
+    @asyncio.coroutine
+    def auth(self, password):
+        """将pool里面的每个连接进行auth"""
+        self._password = password
+        with (yield from self._cond):
+            for i in range(self.freesize):
+                yield from self._pool[i].auth(password)
