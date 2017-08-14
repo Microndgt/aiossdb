@@ -1,4 +1,5 @@
 import asyncio
+import functools
 from .log import logger
 
 
@@ -24,3 +25,17 @@ def set_exception(fut, exception):
 def wait_ok(fut):
     yield from fut
     return True
+
+
+def set_loop(coroutine):
+
+    @functools.wraps(coroutine)
+    def helper(*args, **kwargs):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        cor = coroutine(*args, **kwargs)
+        res = loop.run_until_complete(cor)
+        loop.close()
+        return res
+
+    return helper

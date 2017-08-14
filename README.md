@@ -14,7 +14,7 @@ DONE and TODO
 
 - [x] base async ssdb connection
 - [x] ssdb parser
-- [ ] ssdb async connection pool
+- [x] ssdb async connection pool
 - [ ] easy using ssdb client
 - [ ] tests
 - [ ] releasing...
@@ -22,6 +22,10 @@ DONE and TODO
 
 Quick Start
 -----------
+
+- ConnectionPool
+
+- Connection
 
 ```
 import asyncio
@@ -57,6 +61,7 @@ Exceptions
     - ConnectionClosedError
     - ReplyError
     - ProtocolError
+    - PoolClosedError
 
 NOTES
 -----

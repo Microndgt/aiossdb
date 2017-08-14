@@ -19,3 +19,7 @@ class ProtocolError(SSDBError):
     """当解析协议出现问题时候引发该异常"""
     def __init__(self, msg):
         self.msg = msg
+
+
+class PoolClosedError(SSDBError):
+    """如果连接池已经关闭，引发该异常"""
