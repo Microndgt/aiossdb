@@ -213,3 +213,7 @@ class ConnectionPool:
         with (yield from self._cond):
             for i in range(self.freesize):
                 yield from self._pool[i].auth(password)
+
+    def __repr__(self):
+        return '<{} [size:[{}:{}], free:{}]>'.format(self.__class__.__name__,
+                                                     self._minsize, self._maxsize, self.freesize)
