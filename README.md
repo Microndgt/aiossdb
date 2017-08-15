@@ -93,3 +93,12 @@ NOTES
 -----
 
 - The preliminary test shows that `aiossdb` is 25 times fast than [pyssdb](https://github.com/ifduyue/pyssdb)
+
+Contributor
+===========
+
+Kevin Du
+--------
+
+- Email: `dgt_x@foxmail.com`
+- Site: `http://skyrover.me`
