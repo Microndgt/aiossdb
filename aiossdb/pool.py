@@ -57,7 +57,7 @@ class SSDBConnectionPool:
     def execute(self, command, *args, **kwargs):
         conn, address = yield from self.get_connection()
         try:
-            fut = conn.execute(command, *args, **kwargs)
+            fut = yield from conn.execute(command, *args, **kwargs)
         finally:
             yield from self.release(conn)
         return fut

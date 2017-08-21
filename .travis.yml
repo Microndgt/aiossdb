@@ -10,11 +10,9 @@ branches:
   only:
     - master
 
-env:
-    global:
-        - SSDB=./ssdb-server
-
 install:
+    - sudo apt-get install python-pip
+    - pip install -r requirements.txt
     - sudo apt-get update
     - wget --no-check-certificate https://github.com/ideawu/ssdb/archive/master.zip
     - unzip master
@@ -23,7 +21,5 @@ install:
     - sudo make install
     - cd /usr/local/ssdb
     - sudo ./ssdb-server -d ssdb.conf
-    - sudo apt-get install python-pip
-    - pip install -r requirements.txt
 
 script: pytest
