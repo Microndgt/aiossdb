@@ -187,3 +187,11 @@ async def test_execute_commands(create_connection, event_loop, local_server):
         await conn.execute('hget', 'hname', 'hkey')
 
     assert conn.closed
+
+    conn = await create_connection(address, loop=event_loop)
+
+    assert conn.encoding == 'utf-8'
+
+    conn = await create_connection(address, loop=event_loop, password='')
+
+    assert not conn.closed

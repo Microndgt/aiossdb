@@ -1,3 +1,5 @@
+sudo: required
+
 language: python
 
 python:
@@ -13,17 +15,15 @@ env:
         - SSDB=./ssdb-server
 
 install:
-    - wget https://github.com/ideawu/ssdb/archive/master.zip
+    - sudo apt-get update
+    - wget --no-check-certificate https://github.com/ideawu/ssdb/archive/master.zip
     - unzip master
-    - make -C ssdb-master
-    - mv ssdb-master/{ssdb-server,ssdb.conf} ./
+    - cd ssdb-master
+    - make
+    - sudo make install
+    - cd /usr/local/ssdb
+    - sudo ./ssdb-server -d ssdb.conf
+    - sudo apt-get install python-pip
     - pip install -r requirements.txt
-
-before_script:
-  - ./ssdb-server ssdb.conf -d
-
-after_script:
-  - killall -w ssdb-server
-  - rm -rf ssdb-master/var/*
 
 script: pytest

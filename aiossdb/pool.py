@@ -9,7 +9,7 @@ from .log import logger
 def create_pool(address, *, password=None, encoding='utf-8', minsize=1, maxsize=10,
                 parser=None, loop=None, timeout=None, pool_cls=None, connection_cls=None):
     if pool_cls is None:
-        pool_cls = ConnectionPool
+        pool_cls = SSDBConnectionPool
 
     pool = pool_cls(address, password=password, encoding=encoding,
                     parser=parser, minsize=minsize, maxsize=maxsize,
@@ -26,7 +26,7 @@ def create_pool(address, *, password=None, encoding='utf-8', minsize=1, maxsize=
     return pool
 
 
-class ConnectionPool:
+class SSDBConnectionPool:
 
     def __init__(self, address, *, password=None, parser=None, encoding=None, minsize, maxsize,
                  connection_cls=None, timeout=None, loop=None):
@@ -53,13 +53,22 @@ class ConnectionPool:
         self._closing = False
         self._closed = False
 
+    @asyncio.coroutine
     def execute(self, command, *args, **kwargs):
         conn, address = yield from self.get_connection()
         try:
             fut = conn.execute(command, *args, **kwargs)
         finally:
-            self.release(conn)
+            yield from self.release(conn)
         return fut
+
+    @property
+    def minsize(self):
+        return self._minsize
+
+    @property
+    def maxsize(self):
+        return self._maxsize
 
     @property
     def freesize(self):
@@ -135,6 +144,7 @@ class ConnectionPool:
             else:
                 self._pool.append(conn)
 
+    @asyncio.coroutine
     def release(self, conn):
         """将没有关闭的连接从used集合放回可用的pool中，或者关闭仍然有命令的连接
         并且给一个信号通知，这样获取新连接的方法就可以获取新连接"""
@@ -143,13 +153,11 @@ class ConnectionPool:
             raise PoolClosedError("Pool is closed")
         assert conn in self._used, ("Invalid connection, maybe from other pool", conn)
         self._used.remove(conn)
-        # 如果连接还有正在执行的命令，log并且关闭
-        if not conn.closed and conn._waiters:
+        # 如果连接还未关闭，则直接关闭
+        if not conn.closed:
             logger.warn("Connection {} has pending commands, closing it".format(conn))
             conn.close()
-        # 如果连接没有关闭，放入可用连接池重用
-        elif not conn.closed:
-            self._pool.append(conn)
+            yield from conn.wait_closed()
 
         # 在这里提供信号量通知
         asyncio.ensure_future(self._wake_up(), loop=self._loop)
