@@ -1,13 +1,7 @@
 language: python
 
-env:
-  global:
-  - SSDB_TAGS="1.9.4" INSTALL_DIR=$HOME/ssdb
-
 python:
 - "3.5"
 - "3.6"
 
 install: "pip install -r requirements.txt"
-
-script: pytest

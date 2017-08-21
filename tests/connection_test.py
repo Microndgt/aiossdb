@@ -48,6 +48,7 @@ async def test_connect_tcp_timeout(create_connection, event_loop, local_server):
     """测试超时是否有效"""
     address = local_server
     with patch('aiossdb.connection.asyncio.open_connection') as open_conn_mock:
+        # 在open_connection之后调用，sleep 0.2s
         open_conn_mock.side_effect = lambda *a, **kw: asyncio.sleep(0.2, loop=event_loop)
         with pytest.raises(asyncio.TimeoutError):
             await create_connection(address, loop=event_loop, timeout=0.1)
