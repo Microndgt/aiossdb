@@ -13,10 +13,12 @@ DONE and TODO
 -------------
 
 - [x] base async ssdb connection
-- [x] ssdb parser
-- [x] ssdb async connection pool
-- [ ] easy using ssdb client
-- [ ] tests
+- [x] async ssdb parser
+- [x] async ssdb connection pool
+- [ ] easy using ssdb async client
+- [x] tests
+- [ ] detailed docs
+- [ ] suppress ReplyError as a choice
 - [ ] releasing...
 - [ ] and more...
 
@@ -47,13 +49,23 @@ def connect_tcp():
     val = yield from conn.execute('hget', 'hash_name', 'hash_key')
     print(val)
     # 获取的连接最后一定要release
-    pool.release(conn)
+    yield from pool.release(conn)
 
     pool.close()
     yield form pool.wait_closed()
 
 loop.run_until_complete(connect_tcp())
 loop.close()
+```
+
+如果获取不存在的键等情况会引发`ReplyError`, 错误类型可能有: `not_found`, `error`, `fail`, `client_error`
+
+```
+try:
+    val = yield from conn.execute('hget', 'hash_name', 'hash_key')
+except ReplyError as e:
+    print("错误类型是: {}".format(e.etype))
+    print("执行的命令是: {}".format(e.command))
 ```
 
 - Connection
