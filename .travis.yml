@@ -4,6 +4,10 @@ python:
 - "3.5"
 - "3.6"
 
+branches:
+  only:
+    - master
+
 env:
     global:
         - SSDB=./ssdb-server
@@ -14,5 +18,12 @@ install:
     - make -C ssdb-master
     - mv ssdb-master/{ssdb-server,ssdb.conf} ./
     - pip install -r requirements.txt
+
+before_script:
+  - ./ssdb-server ssdb.conf -d
+
+after_script:
+  - killall -w ssdb-server
+  - rm -rf ssdb-master/var/*
 
 script: pytest

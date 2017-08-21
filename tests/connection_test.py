@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from aiossdb import SSDBConnection, ProtocolError, ConnectionClosedError
+from aiossdb import SSDBConnection, ProtocolError, ConnectionClosedError, ReplyError
 
 from unittest.mock import patch
 
@@ -97,3 +97,93 @@ def test_close_connection_tcp(create_connection, event_loop, local_server):
     conn.close()
     with pytest.raises(ConnectionClosedError):
         conn.auth('')
+
+
+@pytest.mark.asyncio
+async def test_closed_connection_with_none_reader(create_connection, event_loop, local_server):
+    """测试reader为None的时候会引发ConnectionCloseError"""
+    address = local_server
+    conn = await create_connection(address, loop=event_loop)
+    stored_reader = conn._reader
+    conn._reader = None
+    with pytest.raises(ConnectionClosedError):
+        await conn.execute('get', 'test')
+    conn._reader = stored_reader
+    conn.close()
+
+
+@pytest.mark.asyncio
+async def test_wait_closed(create_connection, event_loop, local_server):
+    """测试等待关闭"""
+    address = local_server
+    conn = await create_connection(address, loop=event_loop)
+    reader_task = conn._reader_task
+    conn.close()
+    assert not reader_task.done()
+    await conn.wait_closed()
+    assert reader_task.done()
+
+
+@pytest.mark.asyncio
+async def test_cancel_wait_closed(create_connection, event_loop, local_server):
+    """测试取消等待关闭，不能被取消的"""
+    address = local_server
+    conn = await create_connection(address, loop=event_loop)
+    reader_task = conn._reader_task
+    conn.close()
+    task = asyncio.ensure_future(conn.wait_closed(), loop=event_loop)
+    event_loop.call_soon(task.cancel)
+    await conn.wait_closed()
+    assert reader_task.done()
+
+
+@pytest.mark.asyncio
+async def test_auth(create_connection, event_loop, local_server):
+    address = local_server
+    conn = await create_connection(address, loop=event_loop)
+    res = await conn.auth('')
+    assert res is True
+
+
+@pytest.mark.asyncio
+async def test_execute_exceptions(create_connection, event_loop, local_server):
+    address = local_server
+    conn = await create_connection(address, loop=event_loop)
+    with pytest.raises(TypeError):
+        await conn.execute(None)
+    with pytest.raises(TypeError):
+        await conn.execute('get', None)
+    with pytest.raises(TypeError):
+        await conn.execute('get', ('a', 'b'))
+    assert len(conn._waiters) == 0
+
+
+@pytest.mark.asyncio
+async def test_execute_commands(create_connection, event_loop, local_server):
+    address = local_server
+    conn = await create_connection(address, loop=event_loop)
+    await conn.execute('set', 'a', 1)
+
+    res = await conn.execute('get', 'a')
+    assert res[0] == '1'
+
+    await conn.execute('del', 'a')
+
+    with pytest.raises(ReplyError):
+        await conn.execute('get', 'a')
+
+    assert conn.closed
+
+    conn = await create_connection(address, loop=event_loop)
+
+    await conn.execute('hset', 'hname', 'hkey', 1)
+
+    res = await conn.execute('hget', 'hname', 'hkey')
+    assert res[0] == '1'
+
+    await conn.execute('hdel', 'hname', 'hkey')
+
+    with pytest.raises(ReplyError):
+        await conn.execute('hget', 'hname', 'hkey')
+
+    assert conn.closed
