@@ -4,4 +4,15 @@ python:
 - "3.5"
 - "3.6"
 
-install: "pip install -r requirements.txt"
+env:
+    global:
+        - SSDB=./ssdb-server
+
+install:
+    - wget https://github.com/ideawu/ssdb/archive/master.zip
+    - unzip master
+    - make -C ssdb-master
+    - mv ssdb-master/{ssdb-server,ssdb.conf} ./
+    - pip install -r requirements.txt
+
+script: pytest
