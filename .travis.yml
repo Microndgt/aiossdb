@@ -19,7 +19,10 @@ before_install:
     - cd ssdb-master
     - make
     - sudo make install
-    - cd /usr/local/ssdb
-    - sudo ./ssdb-server -d ssdb.conf
+    - cd ../
+    - sudo /usr/local/ssdb/ssdb-server -d /usr/local/ssdb/ssdb.conf
+
+install:
+    - pip install -r requirements.txt
 
 script: pytest
