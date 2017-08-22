@@ -42,3 +42,4 @@ class Client:
         if self._pool:
             self._pool.close()
             yield from self._pool.wait_closed()
+            self._pool = None

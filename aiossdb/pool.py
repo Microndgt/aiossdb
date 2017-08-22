@@ -220,6 +220,7 @@ class SSDBConnectionPool:
             yield from asyncio.gather(*waiters, loop=self._loop)
             self._closed = True
 
+    @asyncio.coroutine
     def wait_closed(self):
         """等待直到连接池关闭，这里要等待的是所有连接池连接的关闭期物Future的完成"""
         yield from asyncio.shield(self._waiter, loop=self._loop)
