@@ -15,7 +15,7 @@ DONE and TODO
 - [x] base async ssdb connection
 - [x] async ssdb parser
 - [x] async ssdb connection pool
-- [ ] easy using ssdb async client
+- [x] easy using ssdb async client
 - [x] tests
 - [ ] detailed docs
 - [ ] suppress ReplyError as a choice
@@ -24,6 +24,28 @@ DONE and TODO
 
 Quick Start
 -----------
+
+- Client
+
+Client会创建一个连接池，在每次执行命令的时候都会去从可用连接池中拿到连接，然后执行命令，然后释放
+
+```
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+
+@asyncio.coroutine
+def just_look():
+    c = Client(loop=loop)
+    yield from c.set('a', 1)
+    res = yield from c.get('a')
+    print(res)
+    yield from c.close()
+    return res
+
+loop.run_until_complete(just_look())
+loop.close()
+```
 
 - ConnectionPool
 

@@ -28,8 +28,8 @@ async def test_get_connection(pool):
     # 会直接放入可用连接池
     await pool.release(conn)
 
-    assert pool.freesize == 0
-    assert pool.size == 0
+    assert pool.freesize == 1
+    assert pool.size == 1
 
 
 @pytest.mark.asyncio
@@ -62,17 +62,17 @@ async def test_more_connections(pool):
     conn1, address1 = await pool.get_connection()
     conn2, address2 = await pool.get_connection()
 
-    assert pool.freesize == 8
-    assert pool.size == 10
+    assert pool.freesize == 0
+    assert pool.size == 2
 
     await pool.release(conn1)
 
-    assert pool.freesize == 8
-    assert pool.size == 9
+    assert pool.freesize == 1
+    assert pool.size == 2
 
     await pool.release(conn2)
 
-    assert pool.freesize == 8
-    assert pool.size == 8
+    assert pool.freesize == 2
+    assert pool.size == 2
 
 

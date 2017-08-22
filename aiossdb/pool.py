@@ -129,11 +129,10 @@ class SSDBConnectionPool:
 
     @asyncio.coroutine
     def _fill_free(self, *, overall):
-        """填充pool连接池"""
+        """填充pool连接池,应该填充使得有可用连接，或者填充到self._minsize"""
         self._drop_closed()
-        stop = self._maxsize if overall else self._minsize
-        # 可用连接池最大值也是maxsize
-        while self.size < stop:
+        # 首先将size填充到最小连接数
+        while self.size < self._minsize:
             try:
                 conn = yield from create_connection(self._address, password=self._password,
                                                     encoding=self._encoding, parser=self._parser_class,
@@ -143,6 +142,20 @@ class SSDBConnectionPool:
                 logger.error("create connection encountered error: {}".format(e))
             else:
                 self._pool.append(conn)
+        if self.freesize:
+            return
+        if overall:
+            # 一直填充到可用连接池中有连接，并且size应该小于最大size
+            while not self._pool and self.size < self.maxsize:
+                try:
+                    conn = yield from create_connection(self._address, password=self._password,
+                                                        encoding=self._encoding, parser=self._parser_class,
+                                                        loop=self._loop, timeout=self._timeout,
+                                                        connect_cls=self._connection_cls)
+                except Exception as e:
+                    logger.error("create connection encountered error: {}".format(e))
+                else:
+                    self._pool.append(conn)
 
     @asyncio.coroutine
     def release(self, conn):
@@ -153,11 +166,12 @@ class SSDBConnectionPool:
             raise PoolClosedError("Pool is closed")
         assert conn in self._used, ("Invalid connection, maybe from other pool", conn)
         self._used.remove(conn)
-        # 如果连接还未关闭，则直接关闭
+        # 如果连接还未关闭，则置入可用连接池
         if not conn.closed:
-            logger.warn("Connection {} has pending commands, closing it".format(conn))
-            conn.close()
-            yield from conn.wait_closed()
+            self._pool.append(conn)
+        else:
+            # 如果已经关闭，则不管理
+            logger.warn("Connection {} has been closed".format(conn))
 
         # 在这里提供信号量通知
         asyncio.ensure_future(self._wake_up(), loop=self._loop)
